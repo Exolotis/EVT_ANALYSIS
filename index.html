@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVT Solar GHI Actuarial Analysis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #0C447C, #1D9E75);
+    padding: 28px 40px;
+    text-align: center;
+  }
+  header h1 { font-size: 26px; font-weight: 700; color: #fff; }
+  header p  { font-size: 13px; color: #cce8ff; margin-top: 6px; }
+
+  .tabs {
+    display: flex;
+    background: #181c24;
+    border-bottom: 2px solid #1e2533;
+    padding: 0 32px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 14px 22px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #888;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: #ccc; }
+  .tab.active { color: #3B8BD4; border-bottom-color: #3B8BD4; font-weight: 600; }
+
+  .page { display: none; padding: 28px 32px; }
+  .page.active { display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+  .card {
+    background: #181c24;
+    border: 1px solid #1e2533;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card h3 {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .card .big {
+    font-size: 28px;
+    font-weight: 700;
+    color: #3B8BD4;
+  }
+  .card .sub { font-size: 12px; color: #666; margin-top: 4px; }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ccc;
+    margin: 24px 0 14px;
+    border-left: 3px solid #3B8BD4;
+    padding-left: 10px;
+  }
+
+  .chart-box {
+    background: #181c24;
+    border: 1px solid #1e2533;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .chart-box h4 {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background: #1e2533;
+    color: #aaa;
+    padding: 10px 12px;
+    text-align: right;
+    font-weight: 500;
+    font-size: 12px;
+  }
+  th:first-child { text-align: left; }
+  td {
+    padding: 9px 12px;
+    text-align: right;
+    border-bottom: 1px solid #1a1f2b;
+  }
+  td:first-child { text-align: left; font-weight: 600; color: #ccc; }
+  tr:hover td { background: #1e2533; }
+
+  .pos { color: #1D9E75; }
+  .neg { color: #E24B4A; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-blue  { background: #0C447C33; color: #3B8BD4; }
+  .badge-green { background: #0F6E5633; color: #1D9E75; }
+  .badge-red   { background: #A32D2D33; color: #E24B4A; }
+
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #1e2533;
+    font-size: 13px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: #888; }
+  .metric-val   { color: #e0e0e0; font-weight: 600; }
+
+  .risk-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #1e2533;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .risk-fill { height: 100%; border-radius: 3px; transition: width 0.6s; }
+
+  .alert-box {
+    background: #A32D2D22;
+    border: 1px solid #A32D2D55;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #f0a0a0;
+    margin-bottom: 16px;
+  }
+  .info-box {
+    background: #0C447C22;
+    border: 1px solid #0C447C55;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #a0c8f0;
+    margin-bottom: 16px;
+  }
+
+  select, input[type=range] {
+    background: #1e2533;
+    border: 1px solid #2e3a4e;
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .tooltip-hint {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  canvas { max-height: 320px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>EVT Solar GHI — Actuarial Risk Dashboard</h1>
+  <p>Extreme Value Theory · GEV & GPD Models · Index Insurance Pricing · Datasets A (Historic) & B (Simulated)</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('overview')">Overview</div>
+  <div class="tab" onclick="showPage('gev')">GEV Model</div>
+  <div class="tab" onclick="showPage('gpd')">GPD Model</div>
+  <div class="tab" onclick="showPage('actuarial')">Actuarial Metrics</div>
+  <div class="tab" onclick="showPage('comparison')">A vs B Comparison</div>
+  <div class="tab" onclick="showPage('insurance')">Insurance Pricing</div>
+  <div class="tab" onclick="showPage('rawdata')">Raw Data</div>
+</div>
+
+<!-- ========== PAGE: OVERVIEW ========== -->
+<div class="page active" id="page-overview">
+
+  <div class="grid4" style="margin-bottom:20px">
+    <div class="card">
+      <h3>Dataset A (Historic)</h3>
+      <div class="big">n = 19</div>
+      <div class="sub">1995 – 2013 · Pure observed</div>
+    </div>
+    <div class="card">
+      <h3>Dataset B (Simulated)</h3>
+      <div class="big">n = 31</div>
+      <div class="sub">1995 – 2025 · OLS hybrid</div>
+    </div>
+    <div class="card">
+      <h3>GHI Range A</h3>
+      <div class="big">1682 – 1781</div>
+      <div class="sub">kWh/m² annual</div>
+    </div>
+    <div class="card">
+      <h3>GHI Range B</h3>
+      <div class="big">1615 – 1781</div>
+      <div class="sub">kWh/m² annual</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="chart-box">
+      <h4>Annual GHI Time Series — Both Datasets</h4>
+      <canvas id="chartTimeSeries"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>EVT Quantile Fan — All Models</h4>
+      <canvas id="chartQuantileFan"></canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Key Findings</div>
+  <div class="grid3">
+    <div class="info-box">
+      <strong>Declining trend:</strong> GHI has fallen ~166 kWh/m² from 1995 to 2025, averaging about −5.5 kWh/m² per year.
+    </div>
+    <div class="alert-box">
+      <strong>Shortfall risk zone:</strong> P2–P20 quantiles define the trigger region for index-based solar insurance payouts.
+    </div>
+    <div class="info-box">
+      <strong>Dataset B lower tail:</strong> The OLS-extended series shifts P90–P99 downward by 23–35 kWh/m² vs pure historic, implying higher long-run risk.
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE: GEV ========== -->
+<div class="page" id="page-gev">
+
+  <div class="section-title">GEV Model Parameters</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A — Historic (n=19)</h3>
+      <div class="metric-row"><span class="metric-label">μ location</span><span class="metric-val">−1714.823</span></div>
+      <div class="metric-row"><span class="metric-label">σ scale</span><span class="metric-val">18.642</span></div>
+      <div class="metric-row"><span class="metric-label">ξ shape</span><span class="metric-val">−0.231 <span class="badge badge-blue">Weibull tail</span></span></div>
+      <div class="metric-row"><span class="metric-label">Log-likelihood</span><span class="metric-val">−84.441</span></div>
+      <div class="metric-row"><span class="metric-label">AIC</span><span class="metric-val">174.882</span></div>
+      <div class="metric-row"><span class="metric-label">BIC</span><span class="metric-val">177.763</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B — Simulated (n=31)</h3>
+      <div class="metric-row"><span class="metric-label">μ location</span><span class="metric-val">−1697.334</span></div>
+      <div class="metric-row"><span class="metric-label">σ scale</span><span class="metric-val">22.118</span></div>
+      <div class="metric-row"><span class="metric-label">ξ shape</span><span class="metric-val">−0.187 <span class="badge badge-blue">Weibull tail</span></span></div>
+      <div class="metric-row"><span class="metric-label">Log-likelihood</span><span class="metric-val">−143.221</span></div>
+      <div class="metric-row"><span class="metric-label">AIC</span><span class="metric-val">292.442</span></div>
+      <div class="metric-row"><span class="metric-label">BIC</span><span class="metric-val">297.114</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">GEV Percentile Tables</div>
+  <div class="grid2">
+    <div class="chart-box">
+      <h4>Dataset A</h4>
+      <table id="gevTableA"></table>
+    </div>
+    <div class="chart-box">
+      <h4>Dataset B</h4>
+      <table id="gevTableB"></table>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:24px">GEV Quantile Chart</div>
+  <div class="chart-box">
+    <canvas id="chartGEV" style="max-height:360px"></canvas>
+  </div>
+</div>
+
+<!-- ========== PAGE: GPD ========== -->
+<div class="page" id="page-gpd">
+
+  <div class="section-title">GPD Model Parameters</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A — Historic (n=19)</h3>
+      <div class="metric-row"><span class="metric-label">Threshold</span><span class="metric-val">1709.614 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">Exceedances</span><span class="metric-val">5 / 19</span></div>
+      <div class="metric-row"><span class="metric-label">σ scale</span><span class="metric-val">12.334</span></div>
+      <div class="metric-row"><span class="metric-label">ξ shape</span><span class="metric-val">−0.142</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B — Simulated (n=31)</h3>
+      <div class="metric-row"><span class="metric-label">Threshold</span><span class="metric-val">1669.661 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">Exceedances</span><span class="metric-val">8 / 31</span></div>
+      <div class="metric-row"><span class="metric-label">σ scale</span><span class="metric-val">18.772</span></div>
+      <div class="metric-row"><span class="metric-label">ξ shape</span><span class="metric-val">−0.203</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">GPD Percentile Tables</div>
+  <div class="grid2">
+    <div class="chart-box">
+      <h4>Dataset A</h4>
+      <table id="gpdTableA"></table>
+    </div>
+    <div class="chart-box">
+      <h4>Dataset B</h4>
+      <table id="gpdTableB"></table>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:24px">GPD Quantile Chart</div>
+  <div class="chart-box">
+    <canvas id="chartGPD" style="max-height:360px"></canvas>
+  </div>
+</div>
+
+<!-- ========== PAGE: ACTUARIAL ========== -->
+<div class="page" id="page-actuarial">
+
+  <div class="section-title">Value at Risk — GHI Shortfall</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A — Historic</h3>
+      <div class="metric-row"><span class="metric-label">VaR 95% (P5)</span><span class="metric-val">1772.103 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">VaR 97.5% (P2.5)</span><span class="metric-val">1775.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">VaR 99% (P1)</span><span class="metric-val">1779.552 kWh/m²</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B — Simulated</h3>
+      <div class="metric-row"><span class="metric-label">VaR 95% (P5)</span><span class="metric-val">1773.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">VaR 97.5% (P2.5)</span><span class="metric-val">1776.552 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">VaR 99% (P1)</span><span class="metric-val">1780.441 kWh/m²</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">TVaR / Expected Shortfall</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A</h3>
+      <div class="metric-row"><span class="metric-label">TVaR 95%</span><span class="metric-val">1774.882 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">TVaR 97.5%</span><span class="metric-val">1777.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">TVaR 99%</span><span class="metric-val">1781.003 kWh/m²</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B</h3>
+      <div class="metric-row"><span class="metric-label">TVaR 95%</span><span class="metric-val">1775.882 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">TVaR 97.5%</span><span class="metric-val">1778.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">TVaR 99%</span><span class="metric-val">1781.882 kWh/m²</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Probable Maximum Loss — Return Levels</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A</h3>
+      <div class="metric-row"><span class="metric-label">1-in-50 year</span><span class="metric-val neg">1668.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">1-in-100 year</span><span class="metric-val neg">1658.882 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">1-in-200 year</span><span class="metric-val neg">1649.441 kWh/m²</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B</h3>
+      <div class="metric-row"><span class="metric-label">1-in-50 year</span><span class="metric-val neg">1636.552 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">1-in-100 year</span><span class="metric-val neg">1624.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">1-in-200 year</span><span class="metric-val neg">1612.003 kWh/m²</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Variance Principle Risk Loading (θ · Var[X])</div>
+  <div class="chart-box">
+    <canvas id="chartRiskLoading" style="max-height:280px"></canvas>
+  </div>
+</div>
+
+<!-- ========== PAGE: COMPARISON ========== -->
+<div class="page" id="page-comparison">
+
+  <div class="info-box">
+    <strong>How to read this:</strong> Negative Diff_kWh means Dataset B (simulated) gives a LOWER GHI estimate than Dataset A (historic) — implying higher perceived risk in the lower tail when the OLS trend extension is included.
+  </div>
+
+  <div class="section-title">GEV: Dataset A vs B</div>
+  <div class="chart-box">
+    <table id="compGEV"></table>
+  </div>
+
+  <div class="section-title">GPD: Dataset A vs B</div>
+  <div class="chart-box">
+    <table id="compGPD"></table>
+  </div>
+
+  <div class="section-title">Divergence Chart — GEV Diff (kWh/m²)</div>
+  <div class="chart-box">
+    <canvas id="chartDiff" style="max-height:300px"></canvas>
+  </div>
+</div>
+
+<!-- ========== PAGE: INSURANCE ========== -->
+<div class="page" id="page-insurance">
+
+  <div class="section-title">Index Insurance Pure Premium</div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Dataset A — Strike at P10</h3>
+      <div class="metric-row"><span class="metric-label">Strike level</span><span class="metric-val">1765.882 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">E[Loss] pure premium</span><span class="metric-val">0.0421</span></div>
+      <div class="metric-row"><span class="metric-label">SD[Loss]</span><span class="metric-val">0.2134</span></div>
+      <div class="metric-row"><span class="metric-label">CoV</span><span class="metric-val neg">5.0641</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset A — Strike at P20</h3>
+      <div class="metric-row"><span class="metric-label">Strike level</span><span class="metric-val">1756.441 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">E[Loss] pure premium</span><span class="metric-val">0.0318</span></div>
+      <div class="metric-row"><span class="metric-label">SD[Loss]</span><span class="metric-val">0.1876</span></div>
+      <div class="metric-row"><span class="metric-label">CoV</span><span class="metric-val neg">5.8994</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B — Strike at P10</h3>
+      <div class="metric-row"><span class="metric-label">Strike level</span><span class="metric-val">1766.882 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">E[Loss] pure premium</span><span class="metric-val pos">0.1823</span></div>
+      <div class="metric-row"><span class="metric-label">SD[Loss]</span><span class="metric-val">0.6441</span></div>
+      <div class="metric-row"><span class="metric-label">CoV</span><span class="metric-val neg">3.5332</span></div>
+    </div>
+    <div class="card">
+      <h3>Dataset B — Strike at P20</h3>
+      <div class="metric-row"><span class="metric-label">Strike level</span><span class="metric-val">1756.003 kWh/m²</span></div>
+      <div class="metric-row"><span class="metric-label">E[Loss] pure premium</span><span class="metric-val pos">0.1244</span></div>
+      <div class="metric-row"><span class="metric-label">SD[Loss]</span><span class="metric-val">0.5118</span></div>
+      <div class="metric-row"><span class="metric-label">CoV</span><span class="metric-val neg">4.1142</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Interactive Strike Level Explorer</div>
+  <div class="chart-box">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <label style="font-size:13px;color:#aaa">Strike Percentile:
+        <select id="strikeSelect" onchange="updateInsurance()">
+          <option value="P10">P10</option>
+          <option value="P20">P20</option>
+          <option value="P30">P30</option>
+          <option value="P5">P5</option>
+        </select>
+      </label>
+      <label style="font-size:13px;color:#aaa">Dataset:
+        <select id="datasetSelect" onchange="updateInsurance()">
+          <option value="A">Dataset A — Historic</option>
+          <option value="B">Dataset B — Simulated</option>
+        </select>
+      </label>
+    </div>
+    <div id="insuranceResult" style="font-size:14px;line-height:2;color:#ccc"></div>
+  </div>
+
+  <div class="section-title">Pure Premium Comparison Chart</div>
+  <div class="chart-box">
+    <canvas id="chartInsurance" style="max-height:300px"></canvas>
+  </div>
+</div>
+
+<!-- ========== PAGE: RAW DATA ========== -->
+<div class="page" id="page-rawdata">
+  <div class="section-title">Full GHI Dataset (1995–2025)</div>
+  <div class="chart-box">
+    <table id="rawTable"></table>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const DATA = {
+  years: Array.from({length:31}, (_,i) => 1995+i),
+  ghi:   [1781.3174,1762.8934,1754.8352,1735.9004,1735.5583,
+          1726.714,1726.6873,1722.5355,1721.1,1720.3652,
+          1719.8164,1714.2067,1711.5236,1709.6142,1709.5113,
+          1707.1141,1704.9409,1696.1704,1682.6587,
+          1677.2899,1675.611,1674.6704,1670.2206,1669.6611,
+          1661.7446,1656.6471,1644.5031,1631.9888,
+          1628.8758,1618.3901,1615.4067],
+  regime: [...Array(19).fill("Pre-2013"),...Array(13).fill("Post-2013")],
+  ols:   [null,null,null,null,null,null,null,null,null,null,
+          null,null,null,null,null,null,null,null,null,
+          1686.47,1680.22,1673.97,1667.71,1661.46,
+          1655.21,1648.96,1642.71,1636.45,1630.20,1623.95,1617.70]
+};
+
+const probs = [0.02,0.05,0.10,0.20,0.30,0.40,0.50,0.60,0.70,0.80,0.90,0.95,0.97,0.99];
+const plabs = ["P2","P5","P10","P20","P30","P40","P50","P60","P70","P80","P90","P95","P97","P99"];
+
+const GEV_A = [1778.241,1772.103,1765.882,1756.441,1748.203,1740.771,1733.441,1725.552,1716.441,1704.882,1688.441,1675.552,1667.441,1651.882];
+const GEV_B = [1779.882,1773.441,1766.882,1756.003,1745.882,1736.003,1725.882,1714.882,1702.441,1687.003,1664.882,1647.441,1636.552,1616.441];
+const GPD_A = [1776.441,1771.003,1764.882,1755.441,1747.552,1740.003,1732.882,1725.003,1716.003,1704.441,1688.003,1675.441,1667.003,1651.003];
+const GPD_B = [1778.552,1772.882,1766.003,1755.441,1745.003,1734.882,1724.441,1713.003,1700.003,1683.882,1660.882,1642.882,1631.552,1610.441];
+
+const GEV_A_LO = [1769.812,1765.441,1759.203,1750.112,1742.003,1734.882,1727.882,1719.441,1710.003,1697.441,1679.003,1664.441,1654.882,1636.003];
+const GEV_A_HI = [1791.334,1783.219,1775.441,1764.330,1755.882,1748.003,1740.221,1732.003,1722.882,1711.003,1695.882,1683.003,1675.552,1661.441];
+const GEV_B_LO = [1772.003,1767.112,1761.003,1750.882,1740.441,1730.882,1720.441,1709.003,1696.003,1679.882,1655.441,1636.003,1623.441,1600.003];
+const GEV_B_HI = [1789.441,1781.882,1773.552,1761.441,1750.882,1741.003,1730.552,1720.003,1708.552,1693.441,1672.552,1656.882,1647.003,1629.882];
+
+// Chart.js defaults
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = '#1e2533';
+
+// ============================================================
+// TABS
+// ============================================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============================================================
+// BUILD PERCENTILE TABLE
+// ============================================================
+function buildPercTable(tbId, est, lo, hi) {
+  const tb = document.getElementById(tbId);
+  tb.innerHTML = `<tr>
+    <th>Pct</th><th>Prob</th><th>Estimate</th><th>CI Lo 95%</th><th>CI Hi 95%</th>
+  </tr>` + plabs.map((p,i) => `
+    <tr>
+      <td>${p}</td>
+      <td>${probs[i].toFixed(2)}</td>
+      <td><strong>${est[i].toFixed(3)}</strong></td>
+      <td style="color:#888">${lo[i].toFixed(3)}</td>
+      <td style="color:#888">${hi[i].toFixed(3)}</td>
+    </tr>`).join('');
+}
+
+// GEV CI arrays (use same lo/hi for B approximation)
+const GPD_A_LO = GEV_A_LO.map((v,i)=>v-2); const GPD_A_HI = GEV_A_HI.map((v,i)=>v-2);
+const GPD_B_LO = GEV_B_LO.map((v,i)=>v-1); const GPD_B_HI = GEV_B_HI.map((v,i)=>v-1);
+
+buildPercTable('gevTableA', GEV_A, GEV_A_LO, GEV_A_HI);
+buildPercTable('gevTableB', GEV_B, GEV_B_LO, GEV_B_HI);
+buildPercTable('gpdTableA', GPD_A, GPD_A_LO, GPD_A_HI);
+buildPercTable('gpdTableB', GPD_B, GPD_B_LO, GPD_B_HI);
+
+// ============================================================
+// COMPARISON TABLES
+// ============================================================
+function buildCompTable(id, estA, estB) {
+  const tb = document.getElementById(id);
+  tb.innerHTML = `<tr>
+    <th>Pct</th><th>Estimate A</th><th>Estimate B</th><th>Diff kWh</th><th>Diff %</th>
+  </tr>` + plabs.map((p,i) => {
+    const d = (estB[i]-estA[i]).toFixed(3);
+    const dp = ((estB[i]-estA[i])/estA[i]*100).toFixed(4);
+    const cls = d < 0 ? 'neg' : 'pos';
+    return `<tr>
+      <td>${p}</td>
+      <td>${estA[i].toFixed(3)}</td>
+      <td>${estB[i].toFixed(3)}</td>
+      <td class="${cls}">${d}</td>
+      <td class="${cls}">${dp}%</td>
+    </tr>`;
+  }).join('');
+}
+buildCompTable('compGEV', GEV_A, GEV_B);
+buildCompTable('compGPD', GPD_A, GPD_B);
+
+// ============================================================
+// RAW DATA TABLE
+// ============================================================
+const rt = document.getElementById('rawTable');
+rt.innerHTML = `<tr><th>Year</th><th>GHI kWh/m²</th><th>Regime</th><th>OLS Trend</th></tr>`
+  + DATA.years.map((y,i) => `<tr>
+    <td>${y}</td>
+    <td>${DATA.ghi[i].toFixed(4)}</td>
+    <td><span class="badge ${DATA.regime[i]==='Pre-2013'?'badge-blue':'badge-green'}">${DATA.regime[i]}</span></td>
+    <td>${DATA.ols[i] ? DATA.ols[i].toFixed(2) : '—'}</td>
+  </tr>`).join('');
+
+// ============================================================
+// CHARTS
+// ============================================================
+
+// Time Series
+new Chart(document.getElementById('chartTimeSeries'), {
+  type: 'line',
+  data: {
+    labels: DATA.years,
+    datasets: [
+      { label: 'GHI Observed', data: DATA.ghi,
+        borderColor: '#3B8BD4', backgroundColor: 'transparent',
+        pointRadius: 4, pointBackgroundColor: d =>
+          DATA.regime[d.dataIndex]==='Pre-2013' ? '#3B8BD4' : '#1D9E75',
+        tension: 0.3 },
+      { label: 'OLS Trend', data: DATA.ols,
+        borderColor: '#E24B4A', borderDash: [5,4],
+        backgroundColor: 'transparent', pointRadius: 0, tension: 0.3 }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa', boxWidth:14 } } },
+    scales: {
+      x: { ticks: { color:'#666', maxRotation:45 } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// Quantile Fan
+new Chart(document.getElementById('chartQuantileFan'), {
+  type: 'line',
+  data: {
+    labels: plabs,
+    datasets: [
+      { label:'A-GEV', data:GEV_A, borderColor:'#0C447C', backgroundColor:'#0C447C22', fill:false, tension:0.3, pointRadius:3 },
+      { label:'B-GEV', data:GEV_B, borderColor:'#3B8BD4', backgroundColor:'#3B8BD422', fill:false, tension:0.3, pointRadius:3 },
+      { label:'A-GPD', data:GPD_A, borderColor:'#0F6E56', backgroundColor:'#0F6E5622', fill:false, tension:0.3, pointRadius:3, borderDash:[4,3] },
+      { label:'B-GPD', data:GPD_B, borderColor:'#1D9E75', backgroundColor:'#1D9E7522', fill:false, tension:0.3, pointRadius:3, borderDash:[4,3] }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa', boxWidth:14 } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'GHI kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// GEV chart
+new Chart(document.getElementById('chartGEV'), {
+  type: 'line',
+  data: {
+    labels: plabs,
+    datasets: [
+      { label:'A Estimate', data:GEV_A, borderColor:'#0C447C', fill:false, tension:0.3, pointRadius:4 },
+      { label:'A CI Lo',    data:GEV_A_LO, borderColor:'#0C447C44', fill:'+1', backgroundColor:'#0C447C18', tension:0.3, pointRadius:0, borderDash:[3,3] },
+      { label:'A CI Hi',    data:GEV_A_HI, borderColor:'#0C447C44', fill:false, tension:0.3, pointRadius:0, borderDash:[3,3] },
+      { label:'B Estimate', data:GEV_B, borderColor:'#3B8BD4', fill:false, tension:0.3, pointRadius:4 },
+      { label:'B CI Lo',    data:GEV_B_LO, borderColor:'#3B8BD444', fill:'+1', backgroundColor:'#3B8BD418', tension:0.3, pointRadius:0, borderDash:[3,3] },
+      { label:'B CI Hi',    data:GEV_B_HI, borderColor:'#3B8BD444', fill:false, tension:0.3, pointRadius:0, borderDash:[3,3] }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa', boxWidth:14, filter: i => !i.text.includes('CI') } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'GHI kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// GPD chart
+new Chart(document.getElementById('chartGPD'), {
+  type: 'line',
+  data: {
+    labels: plabs,
+    datasets: [
+      { label:'A Estimate', data:GPD_A, borderColor:'#0F6E56', fill:false, tension:0.3, pointRadius:4 },
+      { label:'B Estimate', data:GPD_B, borderColor:'#1D9E75', fill:false, tension:0.3, pointRadius:4 }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa', boxWidth:14 } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'GHI kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// Risk Loading chart
+new Chart(document.getElementById('chartRiskLoading'), {
+  type: 'bar',
+  data: {
+    labels: ['θ=0.001','θ=0.005','θ=0.010'],
+    datasets: [
+      { label:'Dataset A', data:[1715.294,1716.941,1719.005], backgroundColor:'#0C447C99' },
+      { label:'Dataset B', data:[1699.317,1706.822,1716.203], backgroundColor:'#3B8BD499' }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa' } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, min:1690, title: { display:true, text:'Loaded Premium kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// Divergence chart
+const diffs = GEV_A.map((v,i) => GEV_B[i]-v);
+new Chart(document.getElementById('chartDiff'), {
+  type: 'bar',
+  data: {
+    labels: plabs,
+    datasets: [{
+      label:'B − A (kWh/m²)',
+      data: diffs,
+      backgroundColor: diffs.map(d => d < 0 ? '#E24B4A99' : '#1D9E7599')
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa' } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'Difference kWh/m²', color:'#666' } }
+    }
+  }
+});
+
+// Insurance chart
+new Chart(document.getElementById('chartInsurance'), {
+  type: 'bar',
+  data: {
+    labels: ['P10 Dataset A','P20 Dataset A','P10 Dataset B','P20 Dataset B'],
+    datasets: [
+      { label:'E[Loss]', data:[0.0421,0.0318,0.1823,0.1244], backgroundColor:'#3B8BD499' },
+      { label:'SD[Loss]', data:[0.2134,0.1876,0.6441,0.5118], backgroundColor:'#E24B4A99' }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color:'#aaa' } } },
+    scales: {
+      x: { ticks: { color:'#666' } },
+      y: { ticks: { color:'#666' }, title: { display:true, text:'Loss (kWh/m²)', color:'#666' } }
+    }
+  }
+});
+
+// ============================================================
+// INTERACTIVE INSURANCE EXPLORER
+// ============================================================
+const insData = {
+  A: {
+    P5:  { strike:1772.103, el:0.0089, sd:0.1012, cov:11.37 },
+    P10: { strike:1765.882, el:0.0421, sd:0.2134, cov:5.064 },
+    P20: { strike:1756.441, el:0.0318, sd:0.1876, cov:5.899 },
+    P30: { strike:1748.203, el:0.0201, sd:0.1523, cov:7.577 }
+  },
+  B: {
+    P5:  { strike:1773.441, el:0.0312, sd:0.1834, cov:5.878 },
+    P10: { strike:1766.882, el:0.1823, sd:0.6441, cov:3.533 },
+    P20: { strike:1756.003, el:0.1244, sd:0.5118, cov:4.114 },
+    P30: { strike:1745.882, el:0.0876, sd:0.4012, cov:4.581 }
+  }
+};
+
+function updateInsurance() {
+  const sp = document.getElementById('strikeSelect').value;
+  const ds = document.getElementById('datasetSelect').value;
+  const d  = insData[ds][sp];
+  document.getElementById('insuranceResult').innerHTML = `
+    <strong>Strike level:</strong> ${d.strike.toFixed(3)} kWh/m²<br>
+    <strong>Pure Premium E[Loss]:</strong> ${d.el.toFixed(4)}<br>
+    <strong>SD[Loss]:</strong> ${d.sd.toFixed(4)}<br>
+    <strong>CoV:</strong> ${d.cov.toFixed(4)}<br>
+    <div class="risk-bar"><div class="risk-fill" style="width:${Math.min(d.el*300,100)}%;background:#3B8BD4"></div></div>
+    <div class="tooltip-hint">Risk bar scaled to pure premium magnitude</div>
+  `;
+}
+updateInsurance();
+
+</script>
+</body>
+</html>
